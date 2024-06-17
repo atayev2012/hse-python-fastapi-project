@@ -1,13 +1,28 @@
 from fastapi import FastAPI
+from db_app.database import SessionLocal, engine, Base
+from db_app.models import User, UserAccessLevel, Series, MySeries, SeriesRating, SeriesRatingUser
+from user_app.router import router as user_app_router
+from series_app.router import router as series_app_router
+# create database
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+
+# create db connection dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+app.include_router(user_app_router)
+app.include_router(series_app_router)
 
 
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
 
-
-@app.get("/hello/{name}")
-async def say_hello(name: str):
-    return {"message": f"Hello {name}"}
