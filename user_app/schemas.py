@@ -10,3 +10,4 @@ class UserCreate(BaseModel):
 
 class AccessLevelCreate(BaseModel):
     level_description: str = Field(max_length=255, description="description of user level like admin or moderator")
+
