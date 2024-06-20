@@ -73,3 +73,11 @@ def get_user(
 ):
     user = session.get(User, str_to_uuid(user_id))
     return user
+
+
+@router.get("/info-users-all", status_code=status.HTTP_200_OK, response_model=list[UserInfoResponse])
+def get_all_users(
+        session: Session = Depends(get_db)
+):
+    users = session.query(User).all()
+    return users
