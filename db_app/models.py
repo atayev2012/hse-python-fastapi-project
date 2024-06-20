@@ -1,5 +1,5 @@
 from typing import Annotated
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import UniqueConstraint, ForeignKey
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from db_app.database import Base
 from datetime import datetime
@@ -36,8 +36,31 @@ class Series(Base):
     created_at: Mapped[created_at]
     updated_at: Mapped[updated_at]
 
+    episodes: Mapped[list["Episode"]] = relationship()
+
     __table_args__ = (UniqueConstraint('title', 'year', name='uix_title_year'),)
 
+
+class Episode(Base):
+    __tablename__ = "episodes"
+
+    id: Mapped[uuid_pk]
+    series_id: Mapped[UUID] = mapped_column(ForeignKey("series.id", ondelete="CASCADE"))
+    title: Mapped[str] = mapped_column(nullable=True)
+    description: Mapped[str] = mapped_column(nullable=True)
+    episode_number: Mapped[int] = mapped_column(nullable=False)
+    season_number: Mapped[int] = mapped_column(nullable=False)
+    created_by: Mapped[UUID]
+    created_at: Mapped[created_at]
+    updated_at: Mapped[updated_at]
+
+    series: Mapped["Series"] = relationship()
+
+    __table_args__ = (UniqueConstraint('series_id', 'episode_number', "season_number", name='uix_title_year'),)
+
+    #     description = Column(String)
+    #     episode_number = Column(Integer)
+    #     season_number = Column(Integer)
 #
 # class SeriesWatchTrack(Base):
 #     __tablename__ = "series_watch_track"
