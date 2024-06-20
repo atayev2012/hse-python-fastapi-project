@@ -1,70 +1,66 @@
+from typing import Annotated
+from sqlalchemy import Integer, String, DateTime, Column, ForeignKey, Float, func, text
+from sqlalchemy.orm import relationship, Mapped, mapped_column
+from db_app.database import Base
 from datetime import datetime
-from sqlalchemy import Integer, String, DateTime, Column, ForeignKey, Float
-from sqlalchemy.orm import DeclarativeBase, relationship
-from .database import Base
+from uuid import UUID, uuid4
 
-
-class UserAccessLevel(Base):
-    __tablename__ = "user_access_levels"
-
-    id = Column(Integer, primary_key=True)
-    level_description = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow())
-
-    users = relationship("User", back_populates="user_level")
+uuid_pk = Annotated[UUID, mapped_column(primary_key=True, default=uuid4, index=True)]
+created_at = Annotated[datetime, mapped_column(server_default=text("TIMEZONE('utc', now())"))]
+updated_at = Annotated[datetime, mapped_column(
+    server_default=text("TIMEZONE('utc', now())"),
+    onupdate=datetime.utcnow
+)]
 
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True)
-    username = Column(String, nullable=False)
-    access_level_id = Column(Integer, ForeignKey("user_access_levels.id"))
+    id: Mapped[uuid_pk]
+    username: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
+    email: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(nullable=False)
+    created_at: Mapped[created_at]
 
-    my_series = relationship("MySeries", back_populates="owner")
-    user_level = relationship("UserAccessLevel", back_populates="users")
+    ratings = relationship("UserSeriesRating", back_populates="user")
 
 
 class Series(Base):
     __tablename__ = "series"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, unique=True, index=True, nullable=False)
     description = Column(String)
     year = Column(Integer)
-    episode_qty = Column(Integer, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow())
+    added_at = Column(DateTime, server_default=func.now())
+
+    episodes = relationship("Episode", back_populates="series")
+    ratings = relationship("UserSeriesRating", back_populates="series")
 
 
-class MySeries(Base):
-    __tablename__ = "my_series"
+class Episode(Base):
+    __tablename__ = "episodes"
 
-    user_id = Column(Integer, ForeignKey("users.id"))
-    series_id = Column(Integer, ForeignKey("series.id"))
-    watched_episode_no = Column(Integer)
-    created_at = Column(DateTime, default=datetime.utcnow())
+    id = Column(Integer, primary_key=True, index=True)
+    series_id = Column(Integer, ForeignKey("series.id"), nullable=False)
+    title = Column(String, nullable=False)
+    description = Column(String)
+    episode_number = Column(Integer)
+    season_number = Column(Integer)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    owner = relationship("User", back_populates="my_series")
-
-
-class SeriesRating(Base):
-    __tablename__ = "series_rating"
-
-    id = Column(Integer, primary_key=True)
-    series_id = Column(Integer, ForeignKey("series.id"))
-    rating = Column(Float(precision=5, decimal_return_scale=2), default=0)
-    rated_qty = Column(Integer, default=0)
-
-    ratings = relationship("SeriesRatingUser", back_populates="series_rating")
+    series = relationship("Series", back_populates="episodes")
 
 
-class SeriesRatingUser(Base):
-    __tablename__ = "series_rating_user"
+class UserSeriesRating(Base):
+    __tablename__ = "user_series_ratings"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    series_id = Column(Integer, ForeignKey("series.id"))
-    rating = Column(Integer, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow())
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    series_id = Column(Integer, ForeignKey("series.id"), nullable=False)
+    rating = Column(Float, nullable=True)
+    watched_episodes = Column(Integer, default=0)
+    watched_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    series_rating = relationship("SeriesRating", back_populates="ratings")
+    user = relationship("User", back_populates="ratings")
+    series = relationship("Series", back_populates="ratings")
