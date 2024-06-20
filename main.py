@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from user_app.router import router as user_app_router
 from db_app.database import SessionLocal, engine, Base
-from db_app.models import User, UserAccessLevel, Series, MySeries, SeriesRating, SeriesRatingUser
+# from db_app.models import User, UserAccessLevel, Series, MySeries, SeriesRating, SeriesRatingUser
 
 
 # from series_app.router import router as series_app_router
