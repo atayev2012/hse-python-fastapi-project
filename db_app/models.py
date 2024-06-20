@@ -1,5 +1,5 @@
 from typing import Annotated
-from sqlalchemy import Integer, String, DateTime, Column, ForeignKey, Float, func, text
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from db_app.database import Base
 from datetime import datetime
@@ -23,6 +23,20 @@ class User(Base):
     created_at: Mapped[created_at]
 
     # series_watched: Mapped[list["SeriesWatchTrack"]] = relationship()
+
+
+class Series(Base):
+    __tablename__ = "series"
+
+    id: Mapped[uuid_pk]
+    title: Mapped[str] = mapped_column(nullable=False)
+    description: Mapped[str]
+    year: Mapped[int]
+    created_by: Mapped[UUID]
+    created_at: Mapped[created_at]
+    updated_at: Mapped[updated_at]
+
+    __table_args__ = (UniqueConstraint('title', 'year', name='uix_title_year'),)
 
 #
 # class SeriesWatchTrack(Base):
