@@ -5,13 +5,13 @@ FROM python:3.10-slim
 WORKDIR /app
 
 # Copy the requirements.txt file to the working directory
-COPY requirements.txt /app/
+COPY requirements.txt .
 
 # Install the dependencies
-RUN pip install --no-cache-dir -r ./app/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code to the working directory
-COPY . /app/
+COPY . .
 
 # Expose port 8000 for the FastAPI app
 EXPOSE 80
