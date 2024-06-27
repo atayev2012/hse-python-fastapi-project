@@ -22,7 +22,7 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(nullable=False)
     created_at: Mapped[created_at]
 
-    # series_watched: Mapped[list["SeriesWatchTrack"]] = relationship()
+    watched_series: Mapped[list["UserSeries"]] = relationship(back_populates="user")
 
 
 class Series(Base):
@@ -32,11 +32,14 @@ class Series(Base):
     title: Mapped[str] = mapped_column(nullable=False)
     description: Mapped[str]
     year: Mapped[int]
+    rating: Mapped[float] = mapped_column(default=0)
+    rating_qty: Mapped[int] = mapped_column(default=0)
     created_by: Mapped[UUID]
     created_at: Mapped[created_at]
     updated_at: Mapped[updated_at]
 
-    episodes: Mapped[list["Episode"]] = relationship()
+    episodes: Mapped[list["Episode"]] = relationship(back_populates="series", cascade='all, delete-orphan')
+    rating: Mapped[list["RatingHistory"]] = relationship(back_populates="series", cascade='all, delete-orphan')
 
     __table_args__ = (UniqueConstraint('title', 'year', name='uix_title_year'),)
 
@@ -54,63 +57,51 @@ class Episode(Base):
     created_at: Mapped[created_at]
     updated_at: Mapped[updated_at]
 
-    series: Mapped["Series"] = relationship()
+    series: Mapped["Series"] = relationship(back_populates="episodes")
 
     __table_args__ = (UniqueConstraint('series_id', 'episode_number', "season_number", name='uix_title_year'),)
 
-    #     description = Column(String)
-    #     episode_number = Column(Integer)
-    #     season_number = Column(Integer)
-#
-# class SeriesWatchTrack(Base):
-#     __tablename__ = "series_watch_track"
-#
-#     id: Mapped[uuid_pk]
-#     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id",  ondelete="CASCADE"))
-#     series_id: Mapped[UUID] = mapped_column(ForeignKey("series.id", ondelete="CASCADE"))
-#     episode_id: Mapped[UUID] = mapped_column(ForeignKey("episodes.id", ondelete="CASCADE"))
-#     created_at: Mapped[created_at]
-#
-#     user: Mapped["User"] = relationship()
-#
-#
-# class Series(Base):
-#     __tablename__ = "series"
-#
-#     id = Column(Integer, primary_key=True, index=True)
-#     title = Column(String, unique=True, index=True, nullable=False)
-#     description = Column(String)
-#     year = Column(Integer)
-#     added_at = Column(DateTime, server_default=func.now())
-#
-#     episodes = relationship("Episode", back_populates="series")
-#     ratings = relationship("UserSeriesRating", back_populates="series")
-#
-#
-#
-# class Episode(Base):
-#     __tablename__ = "episodes"
-#
-#     id = Column(Integer, primary_key=True, index=True)
-#     series_id = Column(Integer, ForeignKey("series.id"), nullable=False)
-#     title = Column(String, nullable=False)
-#     description = Column(String)
-#     episode_number = Column(Integer)
-#     season_number = Column(Integer)
-#     created_at = Column(DateTime(timezone=True), server_default=func.now())
-#
-#     series = relationship("Series", back_populates="episodes")
-#
-#
-# class UserSeriesRating(Base):
-#     __tablename__ = "user_series_ratings"
-#
-#     id = Column(Integer, primary_key=True, index=True)
-#     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-#     series_id = Column(Integer, ForeignKey("series.id"), nullable=False)
-#     rating = Column(Float, nullable=True)
-#     watched_episodes = Column(Integer, default=0)
-#     watched_at = Column(DateTime(timezone=True), server_default=func.now())
-#
-#     user = relationship("User", back_populates="ratings")
-#     series = relationship("Series", back_populates="ratings")
+
+class UserSeries(Base):
+    __tablename__ = "user_series"
+
+    id: Mapped[uuid_pk]
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    series_id: Mapped[UUID] = mapped_column(ForeignKey("series.id", ondelete="CASCADE"))
+    created_at: Mapped[created_at]
+    updated_at: Mapped[updated_at]
+
+    user: Mapped["User"] = relationship()
+    series: Mapped["Series"] = relationship()
+    user_episodes: Mapped[list["Episode"]] = relationship(
+        secondary="user_episode",
+        primaryjoin="UserEpisode.user_id==UserSeries.user_id",
+        secondaryjoin="and_(UserEpisode.series_id==Episode.series_id, UserEpisode.episode_id==Episode.id)",
+    )
+
+
+class UserEpisode(Base):
+    __tablename__ = "user_episode"
+
+    id: Mapped[uuid_pk]
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    series_id: Mapped[UUID] = mapped_column(ForeignKey("series.id", ondelete="CASCADE"))
+    episode_id: Mapped[UUID] = mapped_column(ForeignKey("episodes.id", ondelete="CASCADE"))
+    created_at: Mapped[created_at]
+    updated_at: Mapped[updated_at]
+
+    __table_args__ = (UniqueConstraint("user_id", "series_id", "episode_id", name="user_series_episodes"),)
+
+class RatingHistory(Base):
+    __tablename__ = "rating_history"
+
+    id: Mapped[uuid_pk]
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    series_id: Mapped[UUID] = mapped_column(ForeignKey("series.id", ondelete="CASCADE"))
+    rating_value: Mapped[int] = mapped_column(nullable=False)
+    created_at: Mapped[created_at]
+    updated_at: Mapped[updated_at]
+
+    series: Mapped[Series] = relationship()
+
+    __table_args__ = (UniqueConstraint("user_id", "series_id", name="user_series"),)

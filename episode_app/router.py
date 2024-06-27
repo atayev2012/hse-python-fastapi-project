@@ -30,7 +30,8 @@ def add_episode(
         title=episode_info.title,
         description=episode_info.description,
         episode_number=episode_info.episode_number,
-        sesason_number=episode_info.season_number
+        season_number=episode_info.season_number,
+        created_by=user_uuid
     )
 
     session.add(episode)

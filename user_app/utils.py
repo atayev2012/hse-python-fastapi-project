@@ -18,7 +18,7 @@ def str_to_uuid(uuid_code: str):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
                 "status": "fail",
-                "message": "User-Id ERROR: " + e.args[0],
+                "message": "UUID-ERROR: " + e.args[0],
                 "data": None
             }
         )
